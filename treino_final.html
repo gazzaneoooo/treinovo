@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Treino</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0d0d0d;
+  --surface: #161616;
+  --border: #2a2a2a;
+  --accent: #c8f135;
+  --accent-dim: rgba(200,241,53,0.07);
+  --accent-border: rgba(200,241,53,0.2);
+  --text: #f0f0f0;
+  --muted: #666;
+  --input-bg: #111;
+  --red: #ff4d4d;
+  --red-dim: rgba(255,77,77,0.1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  padding-bottom: 100px;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.day-nav {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 12px;
+  gap: 4px;
+}
+.day-nav::-webkit-scrollbar { display: none; }
+.day-btn {
+  flex-shrink: 0;
+  padding: 11px 13px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.day-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* cronômetro bar */
+.chrono-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.chrono-time {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+.chrono-btns { display: flex; gap: 8px; }
+.cbtn {
+  background: #1e1e1e;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 16px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.cbtn:active { background: #2a2a2a; }
+
+/* ── PAGES ── */
+.page { display: none; }
+.page.active { display: block; }
+
+.page-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.page-header h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 30px;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  line-height: 1;
+}
+.page-header span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+
+/* ── EXERCISE ── */
+.exercise { border-bottom: 1px solid var(--border); }
+.exercise-header {
+  padding: 13px 16px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.exercise-name {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.ex-right { display: flex; align-items: center; gap: 10px; }
+.ex-status { font-size: 11px; color: var(--muted); }
+.ex-status.done { color: var(--accent); }
+.exercise-chevron { font-size: 16px; color: var(--muted); transition: transform .2s; line-height: 1; }
+.exercise.open .exercise-chevron { transform: rotate(180deg); }
+.exercise-body { display: none; padding: 0 16px 14px; }
+.exercise.open .exercise-body { display: block; }
+
+/* prep blocks */
+.prep-block {
+  display: flex; gap: 8px; align-items: flex-start;
+  margin-bottom: 8px; padding: 7px 10px;
+  background: #1a1a1a; border-radius: 8px; border: 1px solid var(--border);
+}
+.prep-icon { font-size: 13px; margin-top: 1px; flex-shrink: 0; }
+.prep-text { font-size: 12px; color: var(--muted); }
+.prep-text strong { color: #aaa; font-weight: 500; }
+
+/* set blocks */
+.set-block { margin-bottom: 10px; }
+.set-type { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin-bottom: 4px; }
+.rir-badge {
+  display: inline-block; font-size: 10px;
+  background: var(--accent-dim); color: var(--accent);
+  border: 1px solid var(--accent-border);
+  border-radius: 4px; padding: 2px 7px; margin-bottom: 8px; letter-spacing: .04em;
+}
+
+/* serie rows */
+.series-inputs { display: flex; flex-direction: column; gap: 8px; }
+.serie-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr 44px;
+  align-items: center;
+  gap: 7px;
+}
+.serie-num { font-size: 11px; color: var(--muted); text-align: center; font-weight: 500; }
+.input-wrap {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.input-wrap label { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.input-wrap input {
+  background: transparent; border: none; outline: none;
+  color: var(--accent);
+  font-family: 'DM Sans', sans-serif; font-size: 18px; font-weight: 500;
+  width: 100%; padding: 0;
+  -moz-appearance: textfield;
+}
+.input-wrap input::-webkit-outer-spin-button,
+.input-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.input-wrap input::placeholder { color: #2e2e2e; }
+.input-wrap.filled { border-color: var(--accent-border); }
+
+/* ok button per serie */
+.ok-btn {
+  background: #1a1a1a;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0;
+  height: 44px;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.ok-btn.done {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.ok-btn:active { background: #222; }
+
+/* add series button */
+.add-serie-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.add-serie-btn:active { background: #1a1a1a; border-color: var(--accent-border); color: var(--accent); }
+
+/* extra series label */
+.serie-row.extra .serie-num { color: #555; }
+.serie-row.extra .ok-btn { border-color: #333; }
+
+/* ── FINISH EXERCISE BUTTON ── */
+.finish-ex-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 14px;
+  padding: 13px;
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  color: #555;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: .03em;
+  cursor: pointer;
+  transition: all .2s;
+}
+.finish-ex-btn:active { background: rgba(200,241,53,0.06); border-color: var(--accent-border); color: var(--accent); }
+
+/* exercício concluído */
+.exercise.ex-done { opacity: 0.45; }
+.exercise.ex-done .exercise-name { color: var(--muted); }
+.exercise.ex-done .exercise-header { cursor: default; }
+
+/* ── MODAL BASE ── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 600;
+  background: rgba(0,0,0,0.75);
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: #1a1a1a;
+  border: 1px solid var(--border);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px 36px;
+  width: 100%;
+  max-width: 520px;
+}
+.modal-handle {
+  width: 36px; height: 4px;
+  background: #333; border-radius: 4px;
+  margin: 0 auto 18px;
+}
+.modal-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px; letter-spacing: .05em;
+  color: var(--accent); margin-bottom: 6px;
+}
+.modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+.modal-resumo { font-size: 14px; color: #ccc; margin-bottom: 20px; line-height: 1.8; }
+.modal-btns { display: flex; flex-direction: column; gap: 10px; }
+.modal-btn-confirm {
+  background: var(--accent); color: #0d0d0d;
+  border: none; border-radius: 12px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px; letter-spacing: .06em;
+  padding: 14px; cursor: pointer;
+}
+.modal-btn-cancel {
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; padding: 12px; cursor: pointer;
+}
+
+/* resumo do save */
+.resumo-row {
+  display: flex; justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px; color: #ccc;
+}
+.resumo-row:last-child { border-bottom: none; }
+
+/* ── FINALIZAR TREINO FAB (segundo botão) ── */
+.finish-fab {
+  position: fixed;
+  bottom: 20px; left: 16px;
+  z-index: 300;
+  background: #1e1e1e;
+  color: var(--muted);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: .06em;
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 13px 18px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 7px;
+}
+.finish-fab:active { background: #2a2a2a; }
+.finish-fab.hidden { display: none; }
+
+/* top set */
+.topset-block {
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin-top: 4px;
+}
+.topset-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .09em; color: var(--accent); margin-bottom: 3px; }
+.topset-desc { font-size: 13px; color: #ccc; }
+
+/* ── REST TIMER OVERLAY ── */
+.rest-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.88);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.rest-overlay.show { display: flex; }
+.rest-label { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.rest-ex { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--accent); letter-spacing: .06em; }
+.rest-count {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 96px;
+  color: var(--accent);
+  line-height: 1;
+  letter-spacing: .02em;
+}
+.rest-count.ending { color: var(--red); }
+.rest-bar-bg { width: 220px; height: 4px; background: #2a2a2a; border-radius: 4px; }
+.rest-bar-fill { height: 4px; background: var(--accent); border-radius: 4px; transition: width .9s linear; }
+.rest-skip {
+  margin-top: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  padding: 10px 28px;
+  cursor: pointer;
+}
+.rest-skip:active { background: #1a1a1a; }
+
+/* ── EVOLUÇÃO PAGE ── */
+#evo-page { padding: 0 0 1rem; }
+.evo-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 10px; }
+.evo-header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 30px; color: var(--accent); line-height: 1; }
+.evo-select-wrap { padding: 12px 16px; }
+.evo-select {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+}
+.chart-wrap { padding: 0 16px; position: relative; height: 240px; }
+.evo-history { padding: 12px 16px; }
+.evo-hist-title { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+.hist-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.hist-item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.hist-date { font-size: 12px; color: var(--muted); }
+.hist-volume { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--accent); letter-spacing: .04em; }
+.hist-series { display: flex; flex-wrap: wrap; gap: 6px; }
+.hist-serie-pill {
+  font-size: 11px; background: #1a1a1a;
+  border: 1px solid var(--border);
+  border-radius: 6px; padding: 3px 8px; color: #bbb;
+}
+.evo-empty { padding: 32px 16px; text-align: center; color: var(--muted); font-size: 13px; }
+
+/* ── SAVE BUTTON ── */
+.save-fab {
+  position: fixed;
+  bottom: 20px; right: 16px;
+  z-index: 300;
+  background: var(--accent);
+  color: #0d0d0d;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: .06em;
+  border: none;
+  border-radius: 50px;
+  padding: 13px 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(200,241,53,0.25);
+  display: flex; align-items: center; gap: 7px;
+}
+.save-fab:active { opacity: .85; }
+.save-fab.hidden { display: none; }
+
+/* toast */
+.toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: #1e1e1e; border: 1px solid var(--border);
+  border-radius: 50px; padding: 10px 20px;
+  font-size: 13px; color: var(--text);
+  z-index: 400; opacity: 0;
+  transition: opacity .3s;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ── TOP BAR ── -->
+<div class="topbar">
+  <nav class="day-nav">
+    <button class="day-btn active" onclick="showDay('seg',this)">SEG · Push</button>
+    <button class="day-btn" onclick="showDay('ter',this)">TER · Pull</button>
+    <button class="day-btn" onclick="showDay('qua',this)">QUA · Legs</button>
+    <button class="day-btn" onclick="showDay('sex',this)">SEX · Upper</button>
+    <button class="day-btn" onclick="showDay('sab',this)">SÁB · Lower</button>
+    <button class="day-btn" onclick="showDay('evo',this)">📊 Evolução</button>
+  </nav>
+  <div class="chrono-bar">
+    <span class="chrono-time" id="chronoDisplay">00:00</span>
+    <div class="chrono-btns">
+      <button class="cbtn" onclick="chronoStart()">▶</button>
+      <button class="cbtn" onclick="chronoPause()">⏸</button>
+      <button class="cbtn" onclick="chronoReset()">⏹</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── REST OVERLAY ── -->
+<div class="rest-overlay" id="restOverlay">
+  <div class="rest-label">descanso</div>
+  <div class="rest-ex" id="restExName"></div>
+  <div class="rest-count" id="restCount">60</div>
+  <div style="font-size:11px;color:#555;letter-spacing:.06em;margin-top:-8px;" id="restTotal"></div>
+  <div class="rest-bar-bg"><div class="rest-bar-fill" id="restBar" style="width:100%"></div></div>
+  <button class="rest-skip" onclick="skipRest()">Pular ↗</button>
+</div>
+
+<!-- ── TOAST ── -->
+<div class="toast" id="toast"></div>
+
+<!-- ── SAVE FAB ── -->
+<button class="save-fab" id="saveFab" onclick="salvarTreino()">💾 Salvar</button>
+
+<!-- ── FINALIZAR TREINO FAB ── -->
+<button class="finish-fab" id="finishFab" onclick="abrirFinalizarModal()">🏁 Finalizar</button>
+
+<!-- ── MODAL FINALIZAR ── -->
+<div class="modal-overlay" id="finalizarModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Finalizar treino</div>
+    <div class="modal-sub">Isso vai salvar e resetar o app para o próximo treino.</div>
+    <div class="modal-resumo" id="resumoTexto"></div>
+    <div class="modal-btns">
+      <button class="modal-btn-confirm" onclick="finalizarTreino()">Confirmar e finalizar</button>
+      <button class="modal-btn-cancel" onclick="fecharFinalizarModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL SAVE RESUMO ── -->
+<div class="modal-overlay" id="saveModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Treino salvo ✓</div>
+    <div class="modal-sub">Comparativo com a sessão anterior</div>
+    <div id="resumoSave" style="margin-bottom:20px;"></div>
+    <div class="modal-btns">
+      <button class="modal-btn-confirm" onclick="fecharSaveModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SEGUNDA ===== -->
+<div id="seg" class="page active">
+  <div class="page-header"><h1>Push</h1><span>Segunda-feira</span></div>
+
+  <div class="exercise open" data-ex="supino-reto" data-rest="180">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Supino Reto</span>
+      <div class="ex-right"><span class="ex-status" id="status-supino-reto"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="prep-block"><span class="prep-icon">🔥</span><span class="prep-text"><strong>Aquecimento</strong> — leve, preparação articular</span></div>
+      <div class="prep-block"><span class="prep-icon">🎯</span><span class="prep-text"><strong>Reconhecimento</strong> — submáxima, calibrar carga do dia</span></div>
+      <div class="set-block">
+        <div class="set-type">Working Set · 1x 8-10 rep · 3min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-supino-reto">
+          <div class="serie-row">
+            <span class="serie-num">S1</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'supino-reto',180)">OK</button>
+          </div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="voador" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Voador</span>
+      <div class="ex-right"><span class="ex-status" id="status-voador"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 1/2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-voador">
+          <div class="serie-row"><span class="serie-num">S1</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'voador',120)">OK</button>
+          </div>
+          <div class="serie-row"><span class="serie-num">S2</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'voador',120)">OK</button>
+          </div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="desenvolvimento" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Desenvolvimento</span>
+      <div class="ex-right"><span class="ex-status" id="status-desenvolvimento"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-12 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-desenvolvimento">
+          <div class="serie-row"><span class="serie-num">S1</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'desenvolvimento',120)">OK</button>
+          </div>
+          <div class="serie-row"><span class="serie-num">S2</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'desenvolvimento',120)">OK</button>
+          </div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep + 1 Back Off 8-10 rep · Falhar</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="elevacao-lateral-seg" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Elevação Lateral</span>
+      <div class="ex-right"><span class="ex-status" id="status-elevacao-lateral-seg"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-12 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-elevacao-lateral-seg">
+          <div class="serie-row"><span class="serie-num">S1</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'elevacao-lateral-seg',120)">OK</button>
+          </div>
+          <div class="serie-row"><span class="serie-num">S2</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'elevacao-lateral-seg',120)">OK</button>
+          </div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="triceps-polia" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Tríceps na Polia</span>
+      <div class="ex-right"><span class="ex-status" id="status-triceps-polia"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-triceps-polia">
+          <div class="serie-row"><span class="serie-num">S1</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'triceps-polia',120)">OK</button>
+          </div>
+          <div class="serie-row"><span class="serie-num">S2</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'triceps-polia',120)">OK</button>
+          </div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep + 1 Cluster Set 3x4 (10s descanso) · Falhar</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="triceps-frances" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Tríceps Francês</span>
+      <div class="ex-right"><span class="ex-status" id="status-triceps-frances"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-triceps-frances">
+          <div class="serie-row"><span class="serie-num">S1</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'triceps-frances',120)">OK</button>
+          </div>
+          <div class="serie-row"><span class="serie-num">S2</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'triceps-frances',120)">OK</button>
+          </div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TERÇA ===== -->
+<div id="ter" class="page">
+  <div class="page-header"><h1>Pull</h1><span>Terça-feira</span></div>
+
+  <div class="exercise open" data-ex="remada-supinada" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Remada Curvada Supinada</span>
+      <div class="ex-right"><span class="ex-status" id="status-remada-supinada"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="prep-block"><span class="prep-icon">🔥</span><span class="prep-text"><strong>Aquecimento</strong> — 1x 10-13 rep leve</span></div>
+      <div class="prep-block"><span class="prep-icon">🎯</span><span class="prep-text"><strong>Reconhecimento</strong> — submáxima, calibrar carga</span></div>
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-12 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-remada-supinada">
+          <div class="serie-row"><span class="serie-num">S1</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'remada-supinada',120)">OK</button>
+          </div>
+          <div class="serie-row"><span class="serie-num">S2</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'remada-supinada',120)">OK</button>
+          </div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="remada-unilateral" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Remada Baixa Unilateral</span>
+      <div class="ex-right"><span class="ex-status" id="status-remada-unilateral"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-remada-unilateral">
+          <div class="serie-row"><span class="serie-num">S1</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'remada-unilateral',120)">OK</button>
+          </div>
+          <div class="serie-row"><span class="serie-num">S2</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'remada-unilateral',120)">OK</button>
+          </div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="pulldown-ter" data-rest="210">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Pulldown</span>
+      <div class="ex-right"><span class="ex-status" id="status-pulldown-ter"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 3x 8-10 rep · 3-4min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-pulldown-ter">
+          <div class="serie-row"><span class="serie-num">S1</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'pulldown-ter',210)">OK</button>
+          </div>
+          <div class="serie-row"><span class="serie-num">S2</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'pulldown-ter',210)">OK</button>
+          </div>
+          <div class="serie-row"><span class="serie-num">S3</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'pulldown-ter',210)">OK</button>
+          </div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep + 1 Back Off 8-10 rep · Falhar</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="puxada-neutra" data-rest="210">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Puxada Alta Pegada Neutra</span>
+      <div class="ex-right"><span class="ex-status" id="status-puxada-neutra"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 3-4min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-puxada-neutra">
+          <div class="serie-row"><span class="serie-num">S1</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'puxada-neutra',210)">OK</button>
+          </div>
+          <div class="serie-row"><span class="serie-num">S2</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'puxada-neutra',210)">OK</button>
+          </div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="rosca-barra-w" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Rosca Direta Barra W</span>
+      <div class="ex-right"><span class="ex-status" id="status-rosca-barra-w"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-12 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-rosca-barra-w">
+          <div class="serie-row"><span class="serie-num">S1</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'rosca-barra-w',120)">OK</button>
+          </div>
+          <div class="serie-row"><span class="serie-num">S2</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'rosca-barra-w',120)">OK</button>
+          </div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="rosca-scott" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Rosca Scott</span>
+      <div class="ex-right"><span class="ex-status" id="status-rosca-scott"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-12 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-rosca-scott">
+          <div class="serie-row"><span class="serie-num">S1</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'rosca-scott',120)">OK</button>
+          </div>
+          <div class="serie-row"><span class="serie-num">S2</span>
+            <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+            <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+            <button class="ok-btn" onclick="serieOK(this,'rosca-scott',120)">OK</button>
+          </div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep + 1 Back Off 12-15 rep · Falhar</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== QUARTA ===== -->
+<div id="qua" class="page">
+  <div class="page-header"><h1>Legs</h1><span>Quarta-feira</span></div>
+
+  <div class="exercise open" data-ex="abdutora-qua" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Abdutora</span>
+      <div class="ex-right"><span class="ex-status" id="status-abdutora-qua"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="prep-block"><span class="prep-icon">🔥</span><span class="prep-text"><strong>Aquecimento</strong> — leve, preparação articular</span></div>
+      <div class="prep-block"><span class="prep-icon">🎯</span><span class="prep-text"><strong>Reconhecimento</strong> — submáxima, calibrar carga</span></div>
+      <div class="set-block">
+        <div class="set-type">Working Set · 4x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-abdutora-qua">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'abdutora-qua',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'abdutora-qua',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S3</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'abdutora-qua',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S4</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'abdutora-qua',120)">OK</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="hack-squat" data-rest="180">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Agachamento Hack</span>
+      <div class="ex-right"><span class="ex-status" id="status-hack-squat"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="prep-block"><span class="prep-icon">🔥</span><span class="prep-text"><strong>Aquecimento</strong> — 1x 15-20 rep leve</span></div>
+      <div class="set-block">
+        <div class="set-type">Working Set · 3x 8-10 rep · 3min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-hack-squat">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'hack-squat',180)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'hack-squat',180)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S3</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'hack-squat',180)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="leg45" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Leg 45</span>
+      <div class="ex-right"><span class="ex-status" id="status-leg45"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-leg45">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'leg45',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'leg45',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep + 1 Cluster Set 3x4 (20s descanso) · Falhar</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="stiff-qua" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Stiff</span>
+      <div class="ex-right"><span class="ex-status" id="status-stiff-qua"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-12 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-stiff-qua">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'stiff-qua',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'stiff-qua',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="flexora-qua" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Cadeira Flexora</span>
+      <div class="ex-right"><span class="ex-status" id="status-flexora-qua"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-12 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-flexora-qua">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'flexora-qua',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'flexora-qua',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep + 1 Back Off 12-15 rep · Falhar</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="extensora-qua" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Cadeira Extensora</span>
+      <div class="ex-right"><span class="ex-status" id="status-extensora-qua"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-extensora-qua">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'extensora-qua',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'extensora-qua',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep + 1 Back Off 12-15 rep · Falhar</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SEXTA ===== -->
+<div id="sex" class="page">
+  <div class="page-header"><h1>Upper</h1><span>Sexta-feira</span></div>
+
+  <div class="exercise open" data-ex="remada-curvada-sex" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Remada Curvada</span>
+      <div class="ex-right"><span class="ex-status" id="status-remada-curvada-sex"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="prep-block"><span class="prep-icon">🔥</span><span class="prep-text"><strong>Aquecimento</strong> — leve, preparação articular</span></div>
+      <div class="prep-block"><span class="prep-icon">🎯</span><span class="prep-text"><strong>Reconhecimento</strong> — submáxima, calibrar carga</span></div>
+      <div class="set-block">
+        <div class="set-type">Working Set · 1x 8 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-remada-curvada-sex">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'remada-curvada-sex',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="pulldown-sex" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Pulldown</span>
+      <div class="ex-right"><span class="ex-status" id="status-pulldown-sex"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 1x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-pulldown-sex">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'pulldown-sex',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep + 3 Rest Pause · Falhar</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="supino-inclinado" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Supino Inclinado</span>
+      <div class="ex-right"><span class="ex-status" id="status-supino-inclinado"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-supino-inclinado">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'supino-inclinado',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'supino-inclinado',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="crossover" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Crossover</span>
+      <div class="ex-right"><span class="ex-status" id="status-crossover"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 1x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-crossover">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'crossover',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="elevacao-lateral-sex" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Elevação Lateral</span>
+      <div class="ex-right"><span class="ex-status" id="status-elevacao-lateral-sex"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-elevacao-lateral-sex">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'elevacao-lateral-sex',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'elevacao-lateral-sex',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="scott-sex" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Scott</span>
+      <div class="ex-right"><span class="ex-status" id="status-scott-sex"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 1x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-scott-sex">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'scott-sex',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="triceps-frances-polia" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Tríceps Francês na Polia</span>
+      <div class="ex-right"><span class="ex-status" id="status-triceps-frances-polia"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-triceps-frances-polia">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'triceps-frances-polia',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'triceps-frances-polia',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SÁBADO ===== -->
+<div id="sab" class="page">
+  <div class="page-header"><h1>Lower</h1><span>Sábado</span></div>
+
+  <div class="exercise open" data-ex="extensora-sab" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Cadeira Extensora</span>
+      <div class="ex-right"><span class="ex-status" id="status-extensora-sab"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="prep-block"><span class="prep-icon">🔥</span><span class="prep-text"><strong>Aquecimento</strong> — leve, preparação articular</span></div>
+      <div class="prep-block"><span class="prep-icon">🎯</span><span class="prep-text"><strong>Reconhecimento</strong> — submáxima, calibrar carga</span></div>
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-extensora-sab">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'extensora-sab',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'extensora-sab',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep + 1 Back Off 8-10 rep · Falhar</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="leg-press-sab" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Leg Press</span>
+      <div class="ex-right"><span class="ex-status" id="status-leg-press-sab"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-leg-press-sab">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'leg-press-sab',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'leg-press-sab',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="stiff-sab" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Stiff</span>
+      <div class="ex-right"><span class="ex-status" id="status-stiff-sab"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-stiff-sab">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'stiff-sab',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'stiff-sab',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-12 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="flexora-sab" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Cadeira Flexora</span>
+      <div class="ex-right"><span class="ex-status" id="status-flexora-sab"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-flexora-sab">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'flexora-sab',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'flexora-sab',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">2x 8-10 rep + 1 Back Off 8-10 rep · Falhar</div></div>
+    </div>
+  </div>
+
+  <div class="exercise" data-ex="abdutora-sab" data-rest="120">
+    <div class="exercise-header" onclick="toggleEx(this)">
+      <span class="exercise-name">Abdutora</span>
+      <div class="ex-right"><span class="ex-status" id="status-abdutora-sab"></span><span class="exercise-chevron">⌄</span></div>
+    </div>
+    <div class="exercise-body">
+      <div class="set-block">
+        <div class="set-type">Working Set · 2x 8-10 rep · 2min descanso</div>
+        <div class="rir-badge">⚠ Deixar 2 reps na reserva (RIR 2)</div>
+        <div class="series-inputs" id="si-abdutora-sab">
+          <div class="serie-row"><span class="serie-num">S1</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'abdutora-sab',120)">OK</button></div>
+          <div class="serie-row"><span class="serie-num">S2</span><div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div><div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div><button class="ok-btn" onclick="serieOK(this,'abdutora-sab',120)">OK</button></div>
+        </div>
+      </div>
+      <div class="topset-block"><div class="topset-label">Top Set</div><div class="topset-desc">1x 8-10 rep · Falhar na última rep</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EVOLUÇÃO ===== -->
+<div id="evo" class="page">
+  <div class="evo-header"><h1>Evolução</h1><span>Histórico</span></div>
+  <div class="evo-select-wrap">
+    <select class="evo-select" id="evoSelect" onchange="renderEvo()"></select>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="evoChart" role="img" aria-label="Gráfico de evolução de volume por exercício"></canvas>
+  </div>
+  <div class="evo-history" id="evoHistory"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// CHRONO
+// ══════════════════════════════════════════
+let cSec=0, cRun=false, cInt;
+function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+function chronoStart(){
+  if(cRun) return;
+  cRun=true;
+  // Wake Lock — tela não apaga durante o treino
+  if(navigator.wakeLock){
+    navigator.wakeLock.request('screen').then(wl=>{ window._wl=wl; }).catch(()=>{});
+  }
+  cInt=setInterval(()=>{ cSec++; document.getElementById('chronoDisplay').textContent=fmt(cSec); },1000);
+}
+function chronoPause(){
+  cRun=false; clearInterval(cInt);
+  if(window._wl){ window._wl.release(); window._wl=null; }
+}
+function chronoReset(){
+  chronoPause(); cSec=0;
+  document.getElementById('chronoDisplay').textContent='00:00';
+}
+
+// ══════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════
+function showDay(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  const isEvo = id==='evo';
+  document.getElementById('saveFab').classList.toggle('hidden', isEvo);
+  document.getElementById('finishFab').classList.toggle('hidden', isEvo);
+  window.scrollTo(0,0);
+  if(isEvo){ renderEvoSelect(); renderEvo(); }
+}
+
+// ══════════════════════════════════════════
+// TOGGLE EXERCISE
+// ══════════════════════════════════════════
+function toggleEx(header){
+  // Não colapsa se o exercício está em modo ativo
+  const ex = header.closest('.exercise');
+  if(ex.classList.contains('ex-active')) return;
+  ex.classList.toggle('open');
+}
+
+// ══════════════════════════════════════════
+// MARK FILLED
+// ══════════════════════════════════════════
+function markFilled(inp){
+  inp.closest('.input-wrap').classList.toggle('filled', inp.value!=='');
+}
+
+// ══════════════════════════════════════════
+// REST TIMER — vibração ao terminar, respeitando data-rest de cada exercício
+// ══════════════════════════════════════════
+let rInt, rTotal=0;
+
+function serieOK(btn, exName, restSecs){
+  btn.classList.add('done');
+  updateExStatus(exName);
+  startRest(restSecs, exName);
+}
+
+function startRest(secs, name){
+  clearInterval(rInt);
+  rTotal=secs;
+  let t=secs;
+  const overlay=document.getElementById('restOverlay');
+  const count=document.getElementById('restCount');
+  const bar=document.getElementById('restBar');
+  document.getElementById('restExName').textContent=name.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  document.getElementById('restTotal').textContent=fmt(secs);
+  count.textContent=t;
+  count.classList.remove('ending');
+  bar.style.transition='none';
+  bar.style.width='100%';
+  overlay.classList.add('show');
+  if(navigator.vibrate) navigator.vibrate(80);
+
+  setTimeout(()=>{ bar.style.transition='width 1s linear'; },50);
+
+  rInt=setInterval(()=>{
+    t--;
+    count.textContent=t;
+    bar.style.width=Math.round((t/rTotal)*100)+'%';
+    if(t<=5) count.classList.add('ending');
+    if(t<=0){
+      clearInterval(rInt);
+      overlay.classList.remove('show');
+      // Vibração longa ao finalizar descanso
+      if(navigator.vibrate) navigator.vibrate([300,150,300,150,500]);
+    }
+  },1000);
+}
+
+function skipRest(){
+  clearInterval(rInt);
+  document.getElementById('restOverlay').classList.remove('show');
+}
+
+// ══════════════════════════════════════════
+// EXERCISE STATUS
+// ══════════════════════════════════════════
+function updateExStatus(exId){
+  const si=document.getElementById('si-'+exId);
+  if(!si) return;
+  const total=si.querySelectorAll('.ok-btn').length;
+  const done=si.querySelectorAll('.ok-btn.done').length;
+  const el=document.getElementById('status-'+exId);
+  if(!el) return;
+  if(done===0){ el.textContent=''; el.classList.remove('done'); return; }
+  el.textContent=done+'/'+total+' séries';
+  el.classList.toggle('done', done===total);
+}
+
+// ══════════════════════════════════════════
+// FINALIZAR EXERCÍCIO — botão "Terminei"
+// ══════════════════════════════════════════
+function finalizarExercicio(btn){
+  const ex = btn.closest('.exercise');
+  const exId = ex.dataset.ex;
+
+  // Marca como concluído visualmente
+  ex.classList.add('ex-done');
+  ex.classList.remove('ex-active');
+  ex.classList.remove('open');
+
+  // Atualiza status
+  const el = document.getElementById('status-'+exId);
+  if(el){ el.textContent='✓ Concluído'; el.classList.add('done'); }
+
+  // Abre próximo exercício automaticamente
+  const nextEx = ex.nextElementSibling;
+  if(nextEx && nextEx.classList.contains('exercise')){
+    nextEx.classList.add('open');
+    nextEx.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  skipRest();
+}
+
+// ══════════════════════════════════════════
+// FINALIZAR TREINO — reseta tudo
+// ══════════════════════════════════════════
+function finalizarTreino(){
+  // Coleta dados antes de resetar
+  salvarTreino(true);
+
+  // Reseta todos os exercícios para estado original
+  document.querySelectorAll('.exercise').forEach(ex=>{
+    ex.classList.remove('ex-done','ex-active','open');
+    // Abre primeiro exercício de cada página
+  });
+  // Abre primeiro exercício de cada dia
+  document.querySelectorAll('.page').forEach(pg=>{
+    const first = pg.querySelector('.exercise');
+    if(first) first.classList.add('open');
+  });
+
+  // Limpa todos os inputs
+  document.querySelectorAll('.serie-row.extra').forEach(r=>r.remove());
+  document.querySelectorAll('.series-inputs input').forEach(inp=>{
+    inp.value='';
+    inp.closest('.input-wrap').classList.remove('filled');
+  });
+  document.querySelectorAll('.ok-btn').forEach(b=>b.classList.remove('done'));
+  document.querySelectorAll('.ex-status').forEach(el=>{ el.textContent=''; el.classList.remove('done'); });
+
+  // Recarrega valores da sessão anterior como placeholder
+  loadLastSession();
+
+  // Reseta cronômetro
+  chronoReset();
+
+  // Fecha modal
+  document.getElementById('finalizarModal').classList.remove('show');
+  showToast('🏁 Treino finalizado e salvo!');
+}
+
+function abrirFinalizarModal(){
+  // Monta resumo
+  const page = document.querySelector('.page.active');
+  let totalSeries=0, totalExs=0;
+  page.querySelectorAll('.exercise').forEach(ex=>{
+    const done = ex.querySelectorAll('.ok-btn.done').length;
+    if(done>0){ totalExs++; totalSeries+=done; }
+  });
+  document.getElementById('resumoTexto').innerHTML=
+    `<strong>${totalExs}</strong> exercícios · <strong>${totalSeries}</strong> séries · <strong>${fmt(cSec)}</strong> de treino`;
+  document.getElementById('finalizarModal').classList.add('show');
+}
+
+function fecharFinalizarModal(){
+  document.getElementById('finalizarModal').classList.remove('show');
+}
+
+// ══════════════════════════════════════════
+// SAVE
+// ══════════════════════════════════════════
+function salvarTreino(silencioso=false){
+  let hist=JSON.parse(localStorage.getItem('treinoHist'))||[];
+  const today=new Date().toLocaleDateString('pt-BR');
+  let saved=0;
+  let resumo=[];
+
+  document.querySelectorAll('.exercise').forEach(ex=>{
+    if(!ex.closest('.page.active')) return;
+    const exId=ex.dataset.ex;
+    const rows=ex.querySelectorAll('.serie-row');
+    let series=[];
+    rows.forEach(r=>{
+      const ins=r.querySelectorAll('input');
+      const kg=parseFloat(ins[0].value)||0;
+      const reps=parseInt(ins[1].value)||0;
+      if(kg>0||reps>0) series.push({kg,reps});
+    });
+    if(series.length===0) return;
+
+    // Comparar com sessão anterior
+    const prev=hist.filter(h=>h.ex===exId).pop();
+    const volAtual=series.reduce((a,s)=>a+(s.kg*s.reps),0);
+    const volPrev=prev?prev.series.reduce((a,s)=>a+(s.kg*s.reps),0):null;
+    const trend=volPrev===null?'novo':volAtual>volPrev?'📈':volAtual<volPrev?'📉':'➡️';
+    resumo.push({nome:exLabels[exId]||exId, vol:volAtual, trend});
+
+    hist.push({ex:exId, data:today, tempo:cSec, series});
+    saved++;
+  });
+
+  if(saved===0){ if(!silencioso) showToast('Nenhum dado para salvar'); return; }
+  localStorage.setItem('treinoHist',JSON.stringify(hist));
+
+  if(!silencioso){
+    // Mostra modal de resumo do save
+    let html=resumo.map(r=>`<div class="resumo-row"><span>${r.nome}</span><span>${r.vol} ${r.trend}</span></div>`).join('');
+    document.getElementById('resumoSave').innerHTML=html;
+    document.getElementById('saveModal').classList.add('show');
+  }
+}
+
+function fecharSaveModal(){
+  document.getElementById('saveModal').classList.remove('show');
+}
+
+// ══════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════
+let toastT;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ══════════════════════════════════════════
+// EVOLUÇÃO
+// ══════════════════════════════════════════
+let evoChart;
+const exLabels={
+  'supino-reto':'Supino Reto','voador':'Voador','desenvolvimento':'Desenvolvimento',
+  'elevacao-lateral-seg':'Elev. Lateral (Seg)','triceps-polia':'Tríceps Polia',
+  'triceps-frances':'Tríceps Francês','remada-supinada':'Remada Supinada',
+  'remada-unilateral':'Remada Unilateral','pulldown-ter':'Pulldown (Ter)',
+  'puxada-neutra':'Puxada Neutra','rosca-barra-w':'Rosca Barra W',
+  'rosca-scott':'Rosca Scott','abdutora-qua':'Abdutora (Qua)',
+  'hack-squat':'Hack Squat','leg45':'Leg 45','stiff-qua':'Stiff (Qua)',
+  'flexora-qua':'Flexora (Qua)','extensora-qua':'Extensora (Qua)',
+  'remada-curvada-sex':'Remada Curvada','pulldown-sex':'Pulldown (Sex)',
+  'supino-inclinado':'Supino Inclinado','crossover':'Crossover',
+  'elevacao-lateral-sex':'Elev. Lateral (Sex)','scott-sex':'Scott',
+  'triceps-frances-polia':'Tríceps Francês Polia','extensora-sab':'Extensora (Sab)',
+  'leg-press-sab':'Leg Press','stiff-sab':'Stiff (Sab)',
+  'flexora-sab':'Flexora (Sab)','abdutora-sab':'Abdutora (Sab)'
+};
+
+function renderEvoSelect(){
+  const hist=JSON.parse(localStorage.getItem('treinoHist'))||[];
+  const ids=[...new Set(hist.map(h=>h.ex))];
+  const sel=document.getElementById('evoSelect');
+  sel.innerHTML='';
+  if(ids.length===0){ sel.innerHTML='<option>Nenhum dado ainda</option>'; return; }
+  ids.forEach(id=>{
+    const o=document.createElement('option');
+    o.value=id; o.textContent=exLabels[id]||id;
+    sel.appendChild(o);
+  });
+}
+
+function renderEvo(){
+  const hist=JSON.parse(localStorage.getItem('treinoHist'))||[];
+  const sel=document.getElementById('evoSelect');
+  const exId=sel.value;
+  const data=hist.filter(h=>h.ex===exId);
+  const histDiv=document.getElementById('evoHistory');
+
+  if(data.length===0){
+    histDiv.innerHTML='<div class="evo-empty">Nenhum registro ainda para este exercício.</div>';
+    if(evoChart){ evoChart.destroy(); evoChart=null; }
+    return;
+  }
+
+  const labels=data.map(d=>d.data);
+  const volumes=data.map(d=>d.series.reduce((a,s)=>a+(s.kg*s.reps),0));
+
+  if(evoChart) evoChart.destroy();
+  evoChart=new Chart(document.getElementById('evoChart'),{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:'Volume (kg×reps)',
+        data:volumes,
+        borderColor:'#c8f135',
+        backgroundColor:'rgba(200,241,53,0.08)',
+        pointBackgroundColor:'#c8f135',
+        pointRadius:5,
+        tension:0.3,
+        fill:true
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{ticks:{color:'#666',font:{size:11}},grid:{color:'rgba(255,255,255,0.05)'}},
+        x:{ticks:{color:'#666',font:{size:11}},grid:{display:false}}
+      }
+    }
+  });
+
+  histDiv.innerHTML='<div class="evo-hist-title">Registros anteriores</div>';
+  [...data].reverse().forEach((d,i)=>{
+    const vol=volumes[volumes.length-1-i];
+    const prevVol=i<data.length-1?volumes[volumes.length-2-i]:null;
+    const trend=prevVol===null?'':vol>prevVol?' 📈':vol<prevVol?' 📉':' ➡️';
+    const pills=d.series.map((s,j)=>`<span class="hist-serie-pill">S${j+1}: ${s.kg}kg × ${s.reps}</span>`).join('');
+    histDiv.innerHTML+=`
+      <div class="hist-item">
+        <div class="hist-item-top">
+          <span class="hist-date">${d.data} · ${fmt(d.tempo)}</span>
+          <span class="hist-volume">${vol}${trend}</span>
+        </div>
+        <div class="hist-series">${pills}</div>
+      </div>`;
+  });
+}
+
+// ══════════════════════════════════════════
+// ADD EXTRA SERIE
+// ══════════════════════════════════════════
+function addSerie(btn){
+  const si=btn.previousElementSibling;
+  const exId=btn.dataset.ex;
+  const restSecs=parseInt(btn.dataset.rest)||120;
+  const existing=si.querySelectorAll('.serie-row');
+  const num=existing.length+1;
+  const row=document.createElement('div');
+  row.className='serie-row extra';
+  row.innerHTML=`
+    <span class="serie-num">S${num}</span>
+    <div class="input-wrap"><label>Kg</label><input type="number" inputmode="decimal" placeholder="0" oninput="markFilled(this)"/></div>
+    <div class="input-wrap"><label>Reps</label><input type="number" inputmode="numeric" placeholder="0" oninput="markFilled(this)"/></div>
+    <button class="ok-btn" onclick="serieOK(this,'${exId}',${restSecs})">OK</button>
+  `;
+  si.appendChild(row);
+  setTimeout(()=>row.querySelector('input').focus(),50);
+  updateExStatus(exId);
+}
+
+// ══════════════════════════════════════════
+// LOAD LAST SESSION — placeholders com valores anteriores
+// ══════════════════════════════════════════
+function loadLastSession(){
+  const hist=JSON.parse(localStorage.getItem('treinoHist'))||[];
+  document.querySelectorAll('.exercise').forEach(ex=>{
+    const exId=ex.dataset.ex;
+    const last=hist.filter(h=>h.ex===exId).pop();
+    const rows=ex.querySelectorAll('.serie-row');
+    rows.forEach((r,i)=>{
+      const ins=r.querySelectorAll('input');
+      if(last && last.series[i]){
+        // Mostra valor anterior como placeholder
+        ins[0].placeholder=last.series[i].kg||'0';
+        ins[1].placeholder=last.series[i].reps||'0';
+      }
+      // Limpa valores atuais
+      ins[0].value='';
+      ins[1].value='';
+      ins[0].closest('.input-wrap').classList.remove('filled');
+      ins[1].closest('.input-wrap').classList.remove('filled');
+    });
+  });
+}
+
+// ══════════════════════════════════════════
+// ONLOAD
+// ══════════════════════════════════════════
+window.onload=()=>{
+  const hist=JSON.parse(localStorage.getItem('treinoHist'))||[];
+
+  document.querySelectorAll('.exercise').forEach(ex=>{
+    const exId=ex.dataset.ex;
+    const restSecs=ex.dataset.rest||120;
+
+    // Inject + série extra button
+    ex.querySelectorAll('.set-block').forEach(block=>{
+      const si=block.querySelector('.series-inputs');
+      if(!si) return;
+      const addBtn=document.createElement('button');
+      addBtn.className='add-serie-btn';
+      addBtn.dataset.ex=exId;
+      addBtn.dataset.rest=restSecs;
+      addBtn.onclick=function(){ addSerie(this); };
+      addBtn.innerHTML='+ série extra';
+      si.after(addBtn);
+    });
+
+    // Inject "Terminei esse exercício" button no exercise-body
+    const body=ex.querySelector('.exercise-body');
+    if(body){
+      const finBtn=document.createElement('button');
+      finBtn.className='finish-ex-btn';
+      finBtn.onclick=function(){ finalizarExercicio(this); };
+      finBtn.innerHTML='✓ Terminei esse exercício';
+      body.appendChild(finBtn);
+    }
+
+    // Placeholders com último valor
+    const last=hist.filter(h=>h.ex===exId).pop();
+    if(!last) return;
+    const rows=ex.querySelectorAll('.serie-row');
+    rows.forEach((r,i)=>{
+      if(!last.series[i]) return;
+      const ins=r.querySelectorAll('input');
+      ins[0].placeholder=last.series[i].kg||'0';
+      ins[1].placeholder=last.series[i].reps||'0';
+    });
+  });
+};
+</script>
+</body>
+</html>
